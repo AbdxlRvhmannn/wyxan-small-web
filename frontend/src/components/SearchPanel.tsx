@@ -5,19 +5,19 @@ import { fetchSearch } from "@/lib/search-api";
 import type { SearchResponse, SearchResultItem } from "@/types/search";
 
 type SearchPanelProps = {
-  minimized: boolean;
-  onMinimize: () => void;
-  onRestore: () => void;
   onOpenResult: (address: string) => void;
-  navigationLoading: boolean;
+  navigationLoading?: boolean;
+  minimized?: boolean;
+  onMinimize?: () => void;
+  onRestore?: () => void;
 };
 
 export default function SearchPanel({
-  minimized,
+  onOpenResult,
+  navigationLoading = false,
+  minimized = false,
   onMinimize,
   onRestore,
-  onOpenResult,
-  navigationLoading,
 }: SearchPanelProps) {
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
@@ -54,9 +54,9 @@ export default function SearchPanel({
     void runSearch(query);
   }
 
-  if (minimized) {
+  if (minimized && onRestore) {
     return (
-      <section className="border rounded bg-white mt-4 p-3" aria-label="Search">
+      <section className="app-card p-3" aria-label="Search">
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
           <span className="small text-secondary">
             Search: <span className="text-body">{activeQuery || "—"}</span>
@@ -75,12 +75,8 @@ export default function SearchPanel({
   }
 
   return (
-    <section className="border rounded bg-white mt-4" aria-label="Search">
-      <div className="border-bottom px-3 py-2">
-        <h2 className="h6 mb-0">Search</h2>
-      </div>
-
-      <form onSubmit={handleSubmit} className="p-3 border-bottom row g-2">
+    <section className="app-card" aria-label="Search">
+      <form onSubmit={handleSubmit} className="p-3 border-bottom row g-2 align-items-center">
         <div className="col">
           <label htmlFor="search-query" className="visually-hidden">
             Search query
@@ -154,7 +150,7 @@ export default function SearchPanel({
                   className="btn btn-outline-primary btn-sm"
                   disabled={navigationLoading}
                   onClick={() => {
-                    onMinimize();
+                    onMinimize?.();
                     onOpenResult(result.address);
                   }}
                 >

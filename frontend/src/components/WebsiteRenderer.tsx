@@ -20,6 +20,7 @@ type WebsiteRendererProps = {
   onInternalNavigate: (address: string) => void;
   onInvalidLink?: (href: string) => void;
   onScrollPosition?: (scrollY: number) => void;
+  framed?: boolean;
 };
 
 export default function WebsiteRenderer({
@@ -29,6 +30,7 @@ export default function WebsiteRenderer({
   onInternalNavigate,
   onInvalidLink,
   onScrollPosition,
+  framed = false,
 }: WebsiteRendererProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -114,10 +116,14 @@ export default function WebsiteRenderer({
     return () => iframe.removeEventListener("load", sendScroll);
   }, [entryId, restoreScrollY, srcDoc]);
 
+  const shellClass = framed
+    ? "app-card app-website-frame overflow-hidden flex-grow-1"
+    : "app-card overflow-hidden";
+
   if (!website) {
     return (
       <section
-        className="border rounded p-3 bg-white text-secondary"
+        className={`${shellClass} p-4 text-secondary`}
         aria-label="Website content"
       >
         No page loaded.
@@ -128,11 +134,8 @@ export default function WebsiteRenderer({
   const htmlMissing = !website.html.trim();
 
   return (
-    <section
-      className="border rounded bg-white overflow-hidden"
-      aria-label="Website content"
-    >
-      <div className="border-bottom px-3 py-2 bg-white">
+    <section className={shellClass} aria-label="Website content">
+      <div className="border-bottom px-3 py-2 bg-white flex-shrink-0">
         <h2 className="h6 mb-1">{website.title}</h2>
         <p className="small text-secondary mb-0">{website.address}</p>
       </div>
@@ -147,7 +150,11 @@ export default function WebsiteRenderer({
           sandbox="allow-scripts"
           srcDoc={srcDoc}
           className="w-100 border-0"
-          style={{ minHeight: "320px", display: "block" }}
+          style={
+            framed
+              ? { display: "block", minHeight: "360px", flex: "1 1 auto" }
+              : { minHeight: "320px", display: "block" }
+          }
         />
       )}
     </section>

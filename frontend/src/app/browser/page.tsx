@@ -1,25 +1,26 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import BrowsingHistory from "@/components/BrowsingHistory";
 import BrowserToolbar from "@/components/BrowserToolbar";
-import SearchPanel from "@/components/SearchPanel";
+import RequirePerson from "@/components/RequirePerson";
 import WebsiteRenderer from "@/components/WebsiteRenderer";
+import { useAppSession } from "@/contexts/app-session-context";
+import { consumePendingNavigation } from "@/lib/pending-navigation";
 import {
   fetchNavigationCurrent,
   postNavigationBack,
   postNavigationForward,
   postNavigationGo,
 } from "@/lib/navigation-api";
-import { getSelectedPersonId } from "@/lib/selected-person";
 import type {
   NavigationActionResponse,
   Website,
 } from "@/types/navigation";
 
 export default function BrowserPage() {
-  const [personId, setPersonId] = useState<string | null>(null);
+  const router = useRouter();
+  const { personId, bumpHistoryRefresh } = useAppSession();
   const [currentAddress, setCurrentAddress] = useState("");
   const [addressInput, setAddressInput] = useState("");
   const [website, setWebsite] = useState<Website | null>(null);
@@ -30,13 +31,8 @@ export default function BrowserPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
-  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-  const [searchMinimized, setSearchMinimized] = useState(false);
   const liveScrollYRef = useRef(0);
-
-  useEffect(() => {
-    setPersonId(getSelectedPersonId());
-  }, []);
+  const pendingOpenRef = useRef<string | null>(null);
 
   const applyActionResponse = useCallback(
     (data: NavigationActionResponse, refreshHistory = false) => {
@@ -59,10 +55,10 @@ export default function BrowserPage() {
       setCanGoBack(data.navigation.canGoBack);
       setCanGoForward(data.navigation.canGoForward);
       if (refreshHistory) {
-        setHistoryRefreshKey((key) => key + 1);
+        bumpHistoryRefresh();
       }
     },
-    [],
+    [bumpHistoryRefresh],
   );
 
   const loadCurrent = useCallback(async () => {
@@ -72,6 +68,11 @@ export default function BrowserPage() {
     setLoading(true);
     setError(null);
     try {
+      const pending = consumePendingNavigation();
+      if (pending) {
+        applyActionResponse(pending, true);
+        return;
+      }
       const data = await fetchNavigationCurrent(personId);
       if (data.website && data.entryId) {
         applyActionResponse({
@@ -92,6 +93,16 @@ export default function BrowserPage() {
   useEffect(() => {
     void loadCurrent();
   }, [loadCurrent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const open = new URLSearchParams(window.location.search).get("open");
+    if (open) {
+      pendingOpenRef.current = open;
+    }
+  }, []);
 
   const runNavigation = useCallback(
     async (
@@ -132,6 +143,16 @@ export default function BrowserPage() {
     [personId, runNavigation],
   );
 
+  useEffect(() => {
+    const open = pendingOpenRef.current;
+    if (!personId || !open) {
+      return;
+    }
+    pendingOpenRef.current = null;
+    navigate(open);
+    router.replace("/browser");
+  }, [personId, navigate, router]);
+
   const goBack = useCallback(() => {
     if (!personId) {
       return;
@@ -148,100 +169,72 @@ export default function BrowserPage() {
     void runNavigation(() => postNavigationForward(personId, scrollY));
   }, [personId, runNavigation]);
 
-  if (personId === null) {
-    return (
-      <main className="container py-5" style={{ maxWidth: "640px" }}>
-        <p className="text-secondary">Loading…</p>
-      </main>
-    );
-  }
-
-  if (!personId) {
-    return (
-      <main className="container py-5" style={{ maxWidth: "640px" }}>
-        <h1 className="h4 mb-3">Browser</h1>
-        <p className="text-secondary mb-3">
-          Select a person before using the browser.
-        </p>
-        <Link href="/" className="btn btn-primary btn-sm">
-          Person selector
-        </Link>
-      </main>
-    );
-  }
-
   return (
-    <main className="container py-4" style={{ maxWidth: "640px" }}>
-      <h1 className="h4 mb-3">Browser</h1>
+    <RequirePerson title="Browse">
+      {personId && (
+        <div className="app-browser-layout container-fluid">
+          <header className="app-browser-toolbar">
+            <header className="app-page-header mb-2">
+              <h1 className="app-page-title">Browse</h1>
+              <p className="app-page-lead">
+                Navigate addresses, use back and forward, and view site content.
+              </p>
+            </header>
+            <BrowserToolbar
+              currentAddress={currentAddress}
+              addressInput={addressInput}
+              onAddressInputChange={setAddressInput}
+              onSubmit={() => navigate(addressInput)}
+              onBack={goBack}
+              onForward={goForward}
+              loading={loading}
+              canGoBack={canGoBack}
+              canGoForward={canGoForward}
+            />
 
-      <BrowserToolbar
-        currentAddress={currentAddress}
-        addressInput={addressInput}
-        onAddressInputChange={setAddressInput}
-        onSubmit={() => navigate(addressInput)}
-        onBack={goBack}
-        onForward={goForward}
-        loading={loading}
-        canGoBack={canGoBack}
-        canGoForward={canGoForward}
-      />
+            {loading && (
+              <div className="d-flex align-items-center gap-2 text-secondary mt-2">
+                <div
+                  className="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"
+                />
+                <span>Loading page…</span>
+              </div>
+            )}
 
-      {loading && (
-        <div className="d-flex align-items-center gap-2 text-secondary mb-3">
-          <div
-            className="spinner-border spinner-border-sm"
-            role="status"
-            aria-hidden="true"
-          />
-          <span>Loading page…</span>
+            {error && (
+              <div className="alert alert-danger py-2 mt-2 mb-0" role="alert">
+                {error}
+              </div>
+            )}
+
+            {linkError && (
+              <div className="alert alert-warning py-2 mt-2 mb-0" role="alert">
+                {linkError}
+              </div>
+            )}
+          </header>
+
+          <div className="app-browser-viewport">
+            {!loading && (
+              <WebsiteRenderer
+                website={website}
+                entryId={entryId || "empty"}
+                restoreScrollY={restoreScrollY}
+                onInternalNavigate={navigate}
+                onScrollPosition={(scrollY) => {
+                  liveScrollYRef.current = scrollY;
+                }}
+                onInvalidLink={(href) =>
+                  setLinkError(`Blocked unsafe or unsupported link: ${href}`)
+                }
+                framed
+              />
+            )}
+          </div>
         </div>
       )}
-
-      {error && (
-        <div className="alert alert-danger py-2 mb-3" role="alert">
-          {error}
-        </div>
-      )}
-
-      {linkError && (
-        <div className="alert alert-warning py-2 mb-3" role="alert">
-          {linkError}
-        </div>
-      )}
-
-      {!loading && (
-        <WebsiteRenderer
-          website={website}
-          entryId={entryId || "empty"}
-          restoreScrollY={restoreScrollY}
-          onInternalNavigate={navigate}
-          onScrollPosition={(scrollY) => {
-            liveScrollYRef.current = scrollY;
-          }}
-          onInvalidLink={(href) =>
-            setLinkError(`Blocked unsafe or unsupported link: ${href}`)
-          }
-        />
-      )}
-
-      <SearchPanel
-        minimized={searchMinimized}
-        onMinimize={() => setSearchMinimized(true)}
-        onRestore={() => setSearchMinimized(false)}
-        onOpenResult={(address) => navigate(address)}
-        navigationLoading={loading}
-      />
-
-      <BrowsingHistory
-        personId={personId}
-        refreshKey={historyRefreshKey}
-        scrollY={liveScrollYRef.current}
-        navigationLoading={loading}
-        onNavigate={(response) => applyActionResponse(response, true)}
-        onJumpError={(message) =>
-          setError(message || "History jump failed")
-        }
-      />
-    </main>
+    </RequirePerson>
   );
 }

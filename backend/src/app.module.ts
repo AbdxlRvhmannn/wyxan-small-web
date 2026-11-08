@@ -4,6 +4,7 @@ import configuration from './config/configuration.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HistoryModule } from './history/history.module.js';
 import { SearchModule } from './search/search.module.js';
+import { SitesModule } from './sites/sites.module.js';
 import { NavigationModule } from './navigation/navigation.module.js';
 import { PeopleModule } from './people/people.module.js';
 
@@ -19,6 +20,7 @@ import { PeopleModule } from './people/people.module.js';
     NavigationModule,
     HistoryModule,
     SearchModule,
+    SitesModule,
   ],
 })
 export class AppModule {}

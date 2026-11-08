@@ -31,7 +31,7 @@ export default function BrowserToolbar({
   }
 
   return (
-    <div className="border rounded bg-light p-3 mb-4">
+    <div className="app-card p-3 bg-white">
       <div className="d-flex gap-2 mb-3">
         <button
           type="button"

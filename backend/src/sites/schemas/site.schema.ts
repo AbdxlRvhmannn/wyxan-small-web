@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type SiteDocument = HydratedDocument<Site>;
 
-@Schema({ collection: 'sites' })
+@Schema({ collection: 'sites', timestamps: true })
 export class Site {
   @Prop({ required: true, unique: true, trim: true, lowercase: true })
   address: string;
@@ -16,6 +16,13 @@ export class Site {
 
   @Prop({ default: '' })
   searchText: string;
+
+  @Prop({ type: Types.ObjectId, index: true })
+  authorId?: Types.ObjectId;
+
+  createdAt?: Date;
+
+  updatedAt?: Date;
 }
 
 export const SiteSchema = SchemaFactory.createForClass(Site);

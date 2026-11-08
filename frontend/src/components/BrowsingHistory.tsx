@@ -12,6 +12,7 @@ type BrowsingHistoryProps = {
   onNavigate: (response: NavigationActionResponse) => void;
   onJumpError: (message: string) => void;
   navigationLoading: boolean;
+  layout?: "list" | "table";
 };
 
 const PAGE_SIZE = 15;
@@ -35,6 +36,7 @@ export default function BrowsingHistory({
   onNavigate,
   onJumpError,
   navigationLoading,
+  layout = "list",
 }: BrowsingHistoryProps) {
   const [visits, setVisits] = useState<HistoryVisit[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -93,12 +95,24 @@ export default function BrowsingHistory({
     }
   }
 
+  const tableLayout = layout === "table";
+
   return (
-    <section className="border rounded bg-white mt-4" aria-label="Browsing history">
-      <div className="border-bottom px-3 py-2 d-flex justify-content-between align-items-center">
-        <h2 className="h6 mb-0">Browsing history</h2>
-        <span className="small text-secondary">{totalCount} visits</span>
-      </div>
+    <section className="app-card" aria-label="Browsing history">
+      {tableLayout && (
+        <div className="border-bottom px-3 py-2 d-flex justify-content-between align-items-center">
+          <span className="small text-secondary">
+            {totalCount} visit{totalCount === 1 ? "" : "s"}
+          </span>
+        </div>
+      )}
+
+      {!tableLayout && (
+        <div className="border-bottom px-3 py-2 d-flex justify-content-between align-items-center">
+          <h2 className="h6 mb-0">Browsing history</h2>
+          <span className="small text-secondary">{totalCount} visits</span>
+        </div>
+      )}
 
       {loading && (
         <div className="p-3 d-flex align-items-center gap-2 text-secondary">
@@ -121,7 +135,64 @@ export default function BrowsingHistory({
         <p className="text-secondary p-3 mb-0">No browsing history yet.</p>
       )}
 
-      {!loading && visits.length > 0 && (
+      {!loading && visits.length > 0 && tableLayout && (
+        <div className="app-table-wrap">
+          <table className="table table-sm table-hover align-middle mb-0">
+            <thead className="table-light sticky-top">
+              <tr>
+                <th scope="col">Title</th>
+                <th scope="col" className="d-none d-md-table-cell">
+                  Address
+                </th>
+                <th scope="col" className="d-none d-lg-table-cell">
+                  Visited
+                </th>
+                <th scope="col" className="d-none d-xl-table-cell">
+                  Type
+                </th>
+                <th scope="col" className="text-end">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {visits.map((visit) => (
+                <tr key={visit.visitId}>
+                  <td>
+                    <div className="fw-semibold">{visit.title}</div>
+                    <div className="small text-secondary d-md-none">
+                      {visit.address}
+                    </div>
+                  </td>
+                  <td className="small text-secondary d-none d-md-table-cell">
+                    {visit.address}
+                  </td>
+                  <td className="small text-secondary d-none d-lg-table-cell">
+                    {formatTimestamp(visit.visitedAt)}
+                  </td>
+                  <td className="small d-none d-xl-table-cell">
+                    {navigationLabel(visit.navigationType)}
+                  </td>
+                  <td className="text-end">
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary btn-sm"
+                      disabled={
+                        navigationLoading || jumpingVisitId !== null
+                      }
+                      onClick={() => void handleJump(visit.visitId)}
+                    >
+                      {jumpingVisitId === visit.visitId ? "…" : "Open"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading && visits.length > 0 && !tableLayout && (
         <ul className="list-group list-group-flush">
           {visits.map((visit) => (
             <li
