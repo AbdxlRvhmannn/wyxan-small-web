@@ -1,0 +1,86 @@
+"use client";
+
+import { FormEvent } from "react";
+
+type BrowserToolbarProps = {
+  currentAddress: string;
+  addressInput: string;
+  onAddressInputChange: (value: string) => void;
+  onSubmit: () => void;
+  loading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+};
+
+export default function BrowserToolbar({
+  currentAddress,
+  addressInput,
+  onAddressInputChange,
+  onSubmit,
+  loading,
+  canGoBack,
+  canGoForward,
+}: BrowserToolbarProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSubmit();
+  }
+
+  return (
+    <div className="border rounded bg-light p-3 mb-4">
+      <div className="d-flex gap-2 mb-3">
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm"
+          disabled
+          aria-disabled={!canGoBack}
+          title={canGoBack ? "Back" : "Back (not available yet)"}
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm"
+          disabled
+          aria-disabled={!canGoForward}
+          title={canGoForward ? "Forward" : "Forward (not available yet)"}
+        >
+          Forward
+        </button>
+      </div>
+
+      <p className="small text-secondary mb-2">
+        Current address:{" "}
+        <span className="text-body">{currentAddress || "—"}</span>
+      </p>
+
+      <form onSubmit={handleSubmit} className="row g-2 align-items-center">
+        <div className="col">
+          <label htmlFor="address-input" className="visually-hidden">
+            Address
+          </label>
+          <input
+            id="address-input"
+            type="text"
+            className="form-control form-control-sm"
+            value={addressInput}
+            onChange={(event) => onAddressInputChange(event.target.value)}
+            placeholder="wyxan://home"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={loading}
+          />
+        </div>
+        <div className="col-auto">
+          <button
+            type="submit"
+            className="btn btn-primary btn-sm"
+            disabled={loading || !addressInput.trim()}
+          >
+            {loading ? "…" : "Go"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
