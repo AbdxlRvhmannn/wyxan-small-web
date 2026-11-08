@@ -13,6 +13,17 @@ export class Site {
 
   @Prop({ required: true })
   html: string;
+
+  @Prop({ default: '' })
+  searchText: string;
 }
 
 export const SiteSchema = SchemaFactory.createForClass(Site);
+
+SiteSchema.index(
+  { title: 'text', searchText: 'text' },
+  {
+    weights: { title: 10, searchText: 1 },
+    name: 'site_text_search',
+  },
+);

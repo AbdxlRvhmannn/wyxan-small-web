@@ -24,5 +24,6 @@ import { NavigationService } from './navigation.service.js';
   ],
   controllers: [NavigationController],
   providers: [NavigationService],
+  exports: [NavigationService],
 })
 export class NavigationModule {}

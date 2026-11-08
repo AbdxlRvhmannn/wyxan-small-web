@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import BrowsingHistory from "@/components/BrowsingHistory";
 import BrowserToolbar from "@/components/BrowserToolbar";
+import SearchPanel from "@/components/SearchPanel";
 import WebsiteRenderer from "@/components/WebsiteRenderer";
 import {
   fetchNavigationCurrent,
@@ -28,32 +30,40 @@ export default function BrowserPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [searchMinimized, setSearchMinimized] = useState(false);
   const liveScrollYRef = useRef(0);
 
   useEffect(() => {
     setPersonId(getSelectedPersonId());
   }, []);
 
-  const applyActionResponse = useCallback((data: NavigationActionResponse) => {
-    if (!data.entryId || !data.website?.address) {
-      setWebsite(null);
-      setEntryId("");
-      setCurrentAddress("");
-      setAddressInput("");
-      setRestoreScrollY(0);
-      setCanGoBack(false);
-      setCanGoForward(false);
-      return;
-    }
-    setCurrentAddress(data.address);
-    setAddressInput(data.address);
-    setWebsite(data.website);
-    setEntryId(data.entryId);
-    setRestoreScrollY(data.scrollY);
-    liveScrollYRef.current = data.scrollY;
-    setCanGoBack(data.navigation.canGoBack);
-    setCanGoForward(data.navigation.canGoForward);
-  }, []);
+  const applyActionResponse = useCallback(
+    (data: NavigationActionResponse, refreshHistory = false) => {
+      if (!data.entryId || !data.website?.address) {
+        setWebsite(null);
+        setEntryId("");
+        setCurrentAddress("");
+        setAddressInput("");
+        setRestoreScrollY(0);
+        setCanGoBack(false);
+        setCanGoForward(false);
+        return;
+      }
+      setCurrentAddress(data.address);
+      setAddressInput(data.address);
+      setWebsite(data.website);
+      setEntryId(data.entryId);
+      setRestoreScrollY(data.scrollY);
+      liveScrollYRef.current = data.scrollY;
+      setCanGoBack(data.navigation.canGoBack);
+      setCanGoForward(data.navigation.canGoForward);
+      if (refreshHistory) {
+        setHistoryRefreshKey((key) => key + 1);
+      }
+    },
+    [],
+  );
 
   const loadCurrent = useCallback(async () => {
     if (!personId) {
@@ -84,7 +94,10 @@ export default function BrowserPage() {
   }, [loadCurrent]);
 
   const runNavigation = useCallback(
-    async (action: () => Promise<NavigationActionResponse>) => {
+    async (
+      action: () => Promise<NavigationActionResponse>,
+      refreshHistory = false,
+    ) => {
       if (!personId) {
         setError("No person selected.");
         return;
@@ -94,7 +107,7 @@ export default function BrowserPage() {
       setLinkError(null);
       try {
         const data = await action();
-        applyActionResponse(data);
+        applyActionResponse(data, refreshHistory);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Navigation failed");
       } finally {
@@ -111,8 +124,9 @@ export default function BrowserPage() {
         return;
       }
       const scrollY = liveScrollYRef.current;
-      void runNavigation(() =>
-        postNavigationGo(personId, trimmed, scrollY),
+      void runNavigation(
+        () => postNavigationGo(personId, trimmed, scrollY),
+        true,
       );
     },
     [personId, runNavigation],
@@ -209,6 +223,25 @@ export default function BrowserPage() {
           }
         />
       )}
+
+      <SearchPanel
+        minimized={searchMinimized}
+        onMinimize={() => setSearchMinimized(true)}
+        onRestore={() => setSearchMinimized(false)}
+        onOpenResult={(address) => navigate(address)}
+        navigationLoading={loading}
+      />
+
+      <BrowsingHistory
+        personId={personId}
+        refreshKey={historyRefreshKey}
+        scrollY={liveScrollYRef.current}
+        navigationLoading={loading}
+        onNavigate={(response) => applyActionResponse(response, true)}
+        onJumpError={(message) =>
+          setError(message || "History jump failed")
+        }
+      />
     </main>
   );
 }

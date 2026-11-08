@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { extractSearchText } from '../src/sites/html-text-extractor.js';
 
 const sites = [
   {
@@ -57,7 +58,12 @@ async function seed() {
     await collection.deleteMany({});
   }
 
-  await collection.insertMany(sites);
+  await collection.insertMany(
+    sites.map((site) => ({
+      ...site,
+      searchText: extractSearchText(site.html),
+    })),
+  );
   console.log(`Inserted ${sites.length} sites`);
   await mongoose.disconnect();
 }

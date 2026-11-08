@@ -22,7 +22,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "seed:people": "node --env-file=.env --import tsx scripts/seed-people.ts",
     "seed:sites": "node --env-file=.env --import tsx scripts/seed-sites.ts",
-    "seed:sites:force": "node --env-file=.env --import tsx scripts/seed-sites.ts --force"
+    "seed:sites:force": "node --env-file=.env --import tsx scripts/seed-sites.ts --force",
+    "backfill:search-text": "node --env-file=.env --import tsx scripts/backfill-search-text.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -30,6 +31,7 @@
     "@nestjs/core": "^12.0.1",
     "@nestjs/mongoose": "^12.0.1",
     "@nestjs/platform-express": "^12.0.1",
+    "html-to-text": "^10.0.1",
     "mongoose": "^9.12.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -40,6 +42,7 @@
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
+    "@types/html-to-text": "^9.0.4",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",

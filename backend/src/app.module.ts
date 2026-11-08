@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration.js';
 import { DatabaseModule } from './database/database.module.js';
+import { HistoryModule } from './history/history.module.js';
+import { SearchModule } from './search/search.module.js';
 import { NavigationModule } from './navigation/navigation.module.js';
 import { PeopleModule } from './people/people.module.js';
 
@@ -15,6 +17,8 @@ import { PeopleModule } from './people/people.module.js';
     DatabaseModule,
     PeopleModule,
     NavigationModule,
+    HistoryModule,
+    SearchModule,
   ],
 })
 export class AppModule {}

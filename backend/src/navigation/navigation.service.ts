@@ -16,6 +16,7 @@ import { NavigationStackEntry } from './schemas/navigation-stack-entry.schema.js
 import {
   VisitHistory,
   VisitHistoryDocument,
+  VisitNavigationType,
 } from './schemas/visit-history.schema.js';
 
 export type NavigationActionBody = {
@@ -99,7 +100,50 @@ export class NavigationService {
     session.markModified('stack');
     await session.save();
 
-    await this.appendVisitHistory(personId, entry);
+    await this.appendVisitHistory(personId, entry, 'go');
+
+    return this.formatResponse(session);
+  }
+
+  async jumpToVisit(
+    personIdRaw: string,
+    visitId: string,
+    scrollY?: number,
+  ): Promise<NavigationActionResponse> {
+    const personId = await this.requirePerson(personIdRaw);
+    const trimmedVisitId = visitId?.trim();
+    if (!trimmedVisitId) {
+      throw new BadRequestException('visitId is required');
+    }
+
+    const history = await this.visitHistoryModel.findOne({ personId }).exec();
+    if (!history) {
+      throw new NotFoundException('Visit not found');
+    }
+
+    const visit = history.visits.find(
+      (item) =>
+        item.visitId === trimmedVisitId || item.entryId === trimmedVisitId,
+    );
+    if (!visit) {
+      throw new NotFoundException('Visit not found');
+    }
+
+    const site = await this.resolveSite(visit.address);
+    const normalizedScrollY = this.normalizeScrollY(scrollY);
+
+    const session = await this.getOrCreateSession(personId);
+    this.persistScrollOnCurrentEntry(session, normalizedScrollY);
+
+    const truncated = session.stack.slice(0, session.currentIndex + 1);
+    const entry = this.createStackEntry(site);
+    truncated.push(entry);
+    session.stack = truncated;
+    session.currentIndex = truncated.length - 1;
+    session.markModified('stack');
+    await session.save();
+
+    await this.appendVisitHistory(personId, entry, 'jump');
 
     return this.formatResponse(session);
   }
@@ -212,15 +256,19 @@ export class NavigationService {
   private async appendVisitHistory(
     personId: Types.ObjectId,
     entry: NavigationStackEntry,
+    navigationType: VisitNavigationType,
   ): Promise<void> {
     await this.visitHistoryModel.findOneAndUpdate(
       { personId },
       {
         $push: {
           visits: {
+            visitId: randomUUID(),
             entryId: entry.entryId,
             address: entry.address,
+            title: entry.website.title,
             visitedAt: new Date(),
+            navigationType,
           },
         },
       },
