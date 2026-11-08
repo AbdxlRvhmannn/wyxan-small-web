@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { getIframeLinkBridgeScript } from "./iframe-link-bridge";
 
 const ALLOWED_TAGS = [
   "p",
@@ -94,17 +95,21 @@ export function sanitizePublisherHtml(html: string): string {
   });
 }
 
-const CSP =
-  "default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; script-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'none';";
-
-export function buildPublisherSrcDoc(sanitizedBodyHtml: string): string {
+export function buildPublisherSrcDoc(
+  sanitizedBodyHtml: string,
+  scriptNonce: string,
+): string {
+  const csp = `default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; script-src 'nonce-${scriptNonce}'; base-uri 'none'; form-action 'none'; manifest-src 'none';`;
+  const bridge = getIframeLinkBridgeScript();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="${CSP}">
+<meta http-equiv="Content-Security-Policy" content="${csp}">
 <title>Published page</title>
 </head>
-<body>${sanitizedBodyHtml}</body>
+<body>${sanitizedBodyHtml}
+<script nonce="${scriptNonce}">${bridge}</script>
+</body>
 </html>`;
 }

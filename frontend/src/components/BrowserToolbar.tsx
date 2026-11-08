@@ -7,6 +7,8 @@ type BrowserToolbarProps = {
   addressInput: string;
   onAddressInputChange: (value: string) => void;
   onSubmit: () => void;
+  onBack: () => void;
+  onForward: () => void;
   loading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
@@ -17,6 +19,8 @@ export default function BrowserToolbar({
   addressInput,
   onAddressInputChange,
   onSubmit,
+  onBack,
+  onForward,
   loading,
   canGoBack,
   canGoForward,
@@ -32,18 +36,16 @@ export default function BrowserToolbar({
         <button
           type="button"
           className="btn btn-outline-secondary btn-sm"
-          disabled
-          aria-disabled={!canGoBack}
-          title={canGoBack ? "Back" : "Back (not available yet)"}
+          disabled={loading || !canGoBack}
+          onClick={onBack}
         >
           Back
         </button>
         <button
           type="button"
           className="btn btn-outline-secondary btn-sm"
-          disabled
-          aria-disabled={!canGoForward}
-          title={canGoForward ? "Forward" : "Forward (not available yet)"}
+          disabled={loading || !canGoForward}
+          onClick={onForward}
         >
           Forward
         </button>
